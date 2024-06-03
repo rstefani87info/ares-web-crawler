@@ -1,0 +1,29 @@
+{
+  "name": "web-crawler",
+  "version": "1.0.0",
+  "description": "A simple way to crawl a web site",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rstefani87info/ares-web-crawler.git"
+  },
+  "keywords": [
+    "aReS",
+    "crawler"
+  ],
+  "author": "Roberto Stefani",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/rstefani87info/ares-web-crawler/issues"
+  },
+  "homepage": "https://github.com/rstefani87info/ares-web-crawler#readme",
+  "dependencies": {
+    "axios": "^1.7.2",
+    "cheerio": "^1.0.0-rc.12",
+    "request": "^2.88.2",
+    "selenium-webdriver": "^4.21.0"
+  }
+}
