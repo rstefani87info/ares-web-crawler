@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "A simple way to crawl a web site",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
