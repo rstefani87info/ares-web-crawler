@@ -4,7 +4,7 @@ import path from "path";
 import { Builder } from 'selenium-webdriver';
 
 
-export class Crawler {
+class Crawler {
 
 
   constructor(urlFilters = {}) {
@@ -107,7 +107,7 @@ export class Crawler {
       ) {
         done =
           (await this.urlFilters[url].selectors[key].analyzeMLElement(
-            element
+            url, $, element
           )) && this.urlFilters[url].selectors[key]?.final;
       }
       let analyzeMLElementChild = this.analyzeMLElementChild;
@@ -147,4 +147,6 @@ export class Crawler {
     // }
   }
 }
+
+export default Crawler;
 
