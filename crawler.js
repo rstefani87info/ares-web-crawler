@@ -4,7 +4,10 @@ import { Builder } from "selenium-webdriver";
 import { parseUrl } from "@ares/web-ui/ml.js";
 // import {cssSelect, cssFilter} from 'css-select';
 
+
 class Crawler {
+
+
   constructor(urlFilters = {}) {
     this.urlFilters = urlFilters;
     this.urlMap = {};
@@ -76,8 +79,8 @@ class Crawler {
    * @param {*} response - the response of the current request
    */
   async crawlHTML(url, response) {
-    const { $ } = parseCode(response.body,response.header);
-    const root = $('*:nth-child(1)')[0];
+    const { $ } = parseCode(response.body, response.header);
+    const root = $("*:nth-child(1)")[0];
     this.analyzeMLElement(url, $, root);
     const srcElement = $("[src]");
     this.analyzeLinkerTags(url, srcElement, $, "src");
