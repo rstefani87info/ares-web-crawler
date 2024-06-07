@@ -15,6 +15,7 @@
     "aReS",
     "crawler"
   ],
+  
   "author": "Roberto Stefani",
   "license": "MIT",
   "bugs": {
@@ -27,6 +28,6 @@
     "css-select": "^5.1.0",
     "request": "^2.88.2",
     "selenium-webdriver": "^4.21.0",
-    "@ares/web-ui": "github:rstefani87info/web-ui#master"
+    "@ares/web-ui": "github:rstefani87info/ares-web-ui#master"
   }
 }

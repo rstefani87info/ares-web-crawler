@@ -1,65 +1,70 @@
-import { load } from "cheerio";
 import request from "request";
 import path from "path";
-import { Builder } from 'selenium-webdriver';
-
+import { Builder } from "selenium-webdriver";
+import { parseUrl } from "@ares/web-ui/ml.js";
+// import {cssSelect, cssFilter} from 'css-select';
 
 class Crawler {
-
-
   constructor(urlFilters = {}) {
     this.urlFilters = urlFilters;
+    this.urlMap = {};
   }
 
-/**
- * 
- * @param {*} browserName - desired browser (chrome, firefox, edge)
- */
-  async initBrowser(browserName){
-    const browser = await new Builder()
-    .forBrowser(browserName) 
-    .build();
+  /**
+   *
+   * @param {*} browserName - desired browser (chrome, firefox, edge)
+   */
+  async initBrowser(browserName) {
+    const browser = await new Builder().forBrowser(browserName).build();
     return browser;
   }
 
   async crawlUrl(url, browser) {
-    let done = false;
-    let response = await request(url);
-     if(browser)  {
-      if(typeof browser === 'string') {
-        browser = await initBrowser(browser);
-      }
-      if( browser instanceof Object ) {
-        await browser.get(url);
-        response = {
-          headers: response.headers,
-          body:await driver.getPageSource(),
-        };
+    if (!this.urlMap[url]) {
+      let done = false;
+      let response = null;
+      request(url, async (er, res, body) => {
+        response = res;
+        response = await parseUrl(url);
 
-      }
-    }
+        if (browser) {
+          if (typeof browser === "string") {
+            browser = await initBrowser(browser);
+          }
+          if (browser instanceof Object) {
+            await browser.get(url);
+            response = {
+              headers: response.headers,
+              body: await driver.getPageSource(),
+            };
+          }
+        }
 
-   
-    for (const key in this.urlFilters) {
-      if (key && this.urlFilters[key]?.analyzeUrl) {
-        done =
-          (await this.urlFilters[key].analyzeUrl(url)) &&
-          this.urlFilters[key]?.final;
-        if (done) break;
-      }
-    }
-    if (!done) {
-      let extension = path.extname(url.split("?", 1)).replace(".", "");
-      const contentType = response.headers["content-type"];
-      if (contentType) {
-        extension = contentType.split("/")[1];
-      }
-      extension = extension.toUpperCase();
-      if (this["crawl" + extension]) {
-        this["crawl" + extension](url);
-      } else {
-        console.log(`No crawler for extension ${extension}`);
-      }
+        for (const key in this.urlFilters) {
+          if (key && this.urlFilters[key]?.analyzeUrl) {
+            done =
+              (await this.urlFilters[key].analyzeUrl(url)) &&
+              this.urlFilters[key]?.final;
+            if (done) break;
+          }
+        }
+        if (!done) {
+          let extension = path.extname(url.split("?", 1)[0]).replace(".", "");
+          const contentType = response
+            ? response.headers["content-type"] ?? "text/html"
+            : "text/html";
+          extension = contentType.split("/")[1];
+          extension = extension.toUpperCase();
+          if (response && response.body) {
+            if (this["crawl" + extension]) {
+              this["crawl" + extension](url, response);
+            } else {
+              console.log(`No crawler for extension ${extension}`);
+            }
+          }
+        }
+        this.urlMap[url] = true;
+      });
     }
   }
 
@@ -71,13 +76,13 @@ class Crawler {
    * @param {*} response - the response of the current request
    */
   async crawlHTML(url, response) {
-    const $ = load(response.body);
-    const root = $(":root");
-    analyzeMLElement(url, $, root);
+    const { $ } = parseCode(response.body,response.header);
+    const root = $('*:nth-child(1)')[0];
+    this.analyzeMLElement(url, $, root);
     const srcElement = $("[src]");
-    analyzeLinkerTags(srcElement, attributeName);
+    this.analyzeLinkerTags(url, srcElement, $, "src");
     const hrefElement = $("[href]");
-    analyzeLinkerTags(hrefElement, attributeName);
+    this.analyzeLinkerTags(url, hrefElement, $, "href");
 
     const sitemapLink = $('link[rel="sitemap"]').attr("href");
     if (sitemapLink) {
@@ -86,11 +91,18 @@ class Crawler {
     }
   }
 
-  async analyzeLinkerTags(collection, attributeName) {
+  async analyzeLinkerTags(url, collection, $, attributeName) {
     for (let i = 0; i < collection.length; i++) {
       const link = collection[i];
       const href = $(link).attr(attributeName);
-      if (href) {
+      if (href.startsWith("javascript:")) {
+      } else if (href.startsWith("mailto:")) {
+      } else if (href.startsWith("tel:")) {
+      } else if (href.startsWith("#")) {
+        const absoluteUrl = new URL(href, url).toString();
+        console.log(`Found link:${absoluteUrl}`);
+        await this.crawlUrl(absoluteUrl);
+      } else if (href) {
         const absoluteUrl = new URL(href, url).toString();
         console.log(`Found link:${absoluteUrl}`);
         await this.crawlUrl(absoluteUrl);
@@ -100,14 +112,21 @@ class Crawler {
 
   async analyzeMLElement(url, $, element) {
     let done = false;
-    for (const key in this.urlFilters[url].selectors) {
+    const elementHash = cheerio.html(element);
+    for (const key in this.urlFilters[url]?.selectors ?? []) {
+      const selectedList = $(key);
+      const selected = selectedList.filter(
+        (x) => cheerio.html(selectedList[x]) === elementHash
+      );
       if (
-        $(key).filter((x) => x === element).length &&
+        selected.length &&
         this.urlFilters[url].selectors[key]?.analyzeMLElement
       ) {
         done =
           (await this.urlFilters[url].selectors[key].analyzeMLElement(
-            url, $, element
+            url,
+            $,
+            element
           )) && this.urlFilters[url].selectors[key]?.final;
       }
       let analyzeMLElementChild = this.analyzeMLElementChild;
@@ -133,8 +152,8 @@ class Crawler {
   // CSS logic
 
   async crawlCSS(url, response) {
-    const parsedCSS = cssSelect.parse(response.body);
-    const cssRules = cssFilter.traverse(parsedCSS, { filter: "rule" });
+    // const parsedCSS = cssSelect.parse(response.body);
+    // const cssRules = cssFilter.traverse(parsedCSS, { filter: "rule" });
     //TODO: implementation of callBack logic for selectors and each property
     //TODO: export property callBack logic to let html node style attribute be analyzed by the same code
     // for (const rule of cssRules) {
@@ -148,5 +167,4 @@ class Crawler {
   }
 }
 
-export default Crawler;
-
+export const crawler = Crawler;

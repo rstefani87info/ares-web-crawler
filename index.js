@@ -1,2 +1,2 @@
-import {Crawler} from "./crawler.js";
-export { Crawler };
+import {crawler} from "@ares/web-crawler/crawler.js";
+export { crawler };
