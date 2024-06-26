@@ -79,7 +79,7 @@ class Crawler {
         onload,
         options
      );
-     const $ = jdom.window.aReS.$;
+    const $ = jdom.window.aReS.$;
     const root = jdom.window.aReS.$("*:nth-child(1)")[0];
     if(urlFilter?.analyzeMLElement)urlFilter.analyzeMLElement(url, $, root);
     else this.analyzeMLElement(url, $, root, urlFilter);
