@@ -15,7 +15,6 @@
     "aReS",
     "crawler"
   ],
-  
   "author": "Roberto Stefani",
   "license": "MIT",
   "bugs": {
@@ -23,11 +22,11 @@
   },
   "homepage": "https://github.com/rstefani87info/ares-web-crawler#readme",
   "dependencies": {
+    "@ares/web-ui": "github:rstefani87info/ares-web-ui#master",
     "axios": "^1.7.2",
     "cheerio": "^1.0.0-rc.12",
     "css-select": "^5.1.0",
     "request": "^2.88.2",
-    "selenium-webdriver": "^4.21.0",
-    "@ares/web-ui": "github:rstefani87info/ares-web-ui#master"
+    "selenium-webdriver": "^4.21.0"
   }
 }
