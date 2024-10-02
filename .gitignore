@@ -1,8 +1,9 @@
+#eclipse 
 .project
 .settings/
-package-lock.json
-yarn.lock
 
+#vscode
+.vscode/
 
 # Logs
 logs
@@ -12,6 +13,8 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 .pnpm-debug.log*
+package-lock.json
+yarn.lock
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json

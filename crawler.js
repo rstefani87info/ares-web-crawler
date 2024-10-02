@@ -36,6 +36,7 @@ class Crawler {
   }
 
   async crawlUrl(url) {
+    let ret=null;
     let urlFilter = findPropValueByAlias(this.urlFilters, url);
     if (!this.urlMap[url] && urlFilter) {
       
@@ -48,12 +49,13 @@ class Crawler {
       const extension = await this.getUrlTypeFromResponse(url,method,headers,payload);
 
       if (this["crawl" + extension]) {
-        this["crawl" + extension](url, method, headers, payload, onload, options, urlFilter);
+        ret = await this["crawl" + extension](url, method, headers, payload, onload, options, urlFilter);
       } else {
         console.log(`No crawler for extension ${extension}`);
       }
       this.urlMap[url] = true;
     }
+     return ret;
   }
 
   // HTML / XML logic
@@ -71,6 +73,7 @@ class Crawler {
     options = {userAgent: "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.36", runScript: "dangerously"},
     urlFilter = null
   ) {
+    let ret = null;
      const jdom = await parseUrl(
         url,
         method ,
@@ -81,8 +84,8 @@ class Crawler {
      );
     const $ = jdom.window.aReS.$;
     const root = jdom.window.aReS.$("*:nth-child(1)")[0];
-    if(urlFilter?.analyzeMLElement)urlFilter.analyzeMLElement(url, $, root);
-    else this.analyzeMLElement(url, $, root, urlFilter);
+    if(urlFilter?.analyzeMLElement) ret = await urlFilter.analyzeMLElement(url, $, root);
+    else ret = await this.analyzeMLElement(url, $, root, urlFilter);
     if(!urlFilter?.excludeCalledResources){
       const srcElement = $("[src]");
       this.analyzeLinkerTags(url, srcElement, $, "src");
@@ -94,6 +97,7 @@ class Crawler {
         await this.crawlUrl(sitemapUrl);
       }
     }
+    return ret;
   }
 
   async analyzeLinkerTags(url, collection, $, attributeName) {
