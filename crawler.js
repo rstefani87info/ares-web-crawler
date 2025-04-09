@@ -25,14 +25,36 @@ class Crawler {
       }
       const params =[url,{ headers: headers }]
       if(method!=="get") params[1].data = payload;
-      let response =  await axios[method](...params); 
-      let extension = path.extname(url.split("?", 1)[0]).replace(".", "");
-      const contentType = response
-        ? response.headers["content-type"] ?? "text/html"
-        : "text/html";
-      extension = contentType.split("/")[1];
-      extension = extension.toUpperCase();
-      return extension;
+      
+      try {
+        let response = await axios[method](...params); 
+        let extension = path.extname(url.split("?", 1)[0]).replace(".", "");
+        const contentType = response
+          ? response.headers["content-type"] ?? "text/html"
+          : "text/html";
+        extension = contentType.split("/")[1];
+        extension = extension.toUpperCase();
+        return extension;
+      } catch (error) {
+        // Handle error with configurable callback if available
+        const urlFilter = findPropValueByAlias(this.urlFilters, url);
+        if (urlFilter?.onError) {
+          return await urlFilter.onError(url, error, this);
+        }
+        
+        // Default error handling
+        if (error.response) {
+          console.error(`Error fetching ${url}: ${error.response.status} ${error.response.statusText}`);
+          if (error.response.status === 404) {
+            console.error(`URL not found: ${url}`);
+            this.urlMap[url] = 'NOT_FOUND';
+            return null;
+          }
+        } else {
+          console.error(`Error fetching ${url}: ${error.message}`);
+        }
+        throw error;
+      }
   }
 
   async crawlUrl(url) {
@@ -46,16 +68,37 @@ class Crawler {
       const onload= (urlFilter?.onload) ?? null; 
       const options= (urlFilter?.options) ?? {};
        
-      const extension = await this.getUrlTypeFromResponse(url,method,headers,payload);
+      try {
+        const extension = await this.getUrlTypeFromResponse(url, method, headers, payload);
+        
+        // If extension is null, it means there was an error (like 404)
+        if (extension === null) {
+          console.log(`Skipping URL due to error: ${url}`);
+          return null;
+        }
 
-      if (this["crawl" + extension]) {
-        ret = await this["crawl" + extension](url, method, headers, payload, onload, options, urlFilter);
-      } else {
-        console.log(`No crawler for extension ${extension}`);
+        if (this["crawl" + extension]) {
+          ret = await this["crawl" + extension](url, method, headers, payload, onload, options, urlFilter);
+        } else {
+          console.log(`No crawler for extension ${extension}`);
+          // Call onUnsupportedExtension callback if available
+          if (urlFilter?.onUnsupportedExtension) {
+            await urlFilter.onUnsupportedExtension(url, extension, this);
+          }
+        }
+        this.urlMap[url] = true;
+      } catch (error) {
+        console.error(`Failed to crawl ${url}: ${error.message}`);
+        // Mark this URL as visited to prevent retrying
+        this.urlMap[url] = 'ERROR';
+        
+        // Call onCrawlError callback if available
+        if (urlFilter?.onCrawlError) {
+          await urlFilter.onCrawlError(url, error, this);
+        }
       }
-      this.urlMap[url] = true;
     }
-     return ret;
+    return ret;
   }
 
   // HTML / XML logic
